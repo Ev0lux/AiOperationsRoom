@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.test-temp/
+*.db
+*.db-wal
+*.db-shm
+*.jsonl
+.env
+PLANO_DO_PROJETO.md
