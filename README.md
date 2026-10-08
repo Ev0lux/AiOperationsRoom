@@ -5,20 +5,42 @@ Uma sala local para acompanhar sessões e subagentes do Claude Code. O aplicativ
 ## Requisitos
 
 - Python 3.12 ou superior
+- [`uv` instalado](https://docs.astral.sh/uv/getting-started/installation/) e disponível no terminal
 - Claude Code, somente para acompanhar sessões reais
 
 ## Início rápido
 
 ```powershell
 uv sync --extra dev
+uv run python -m backend.cli hooks-install
 uv run python -m backend.cli serve
 ```
 
-Abra [http://127.0.0.1:8765](http://127.0.0.1:8765). A tela Projetos associa um diretório local a cada nome exibido na sala. O caminho mais específico vence.
+Execute os comandos na pasta deste repositório. Abra [http://127.0.0.1:8765](http://127.0.0.1:8765) e **deixe o terminal do servidor aberto** enquanto usa a sala; `Ctrl+C` encerra o servidor. O hook continua instalado depois que o servidor para e registra eventos para a próxima abertura. A tela Projetos associa um diretório local a cada nome exibido na sala. O caminho mais específico vence. Uma sala aparece quando há uma sessão capturada nesse diretório; cadastrar um projeto sozinho não cria uma sala vazia.
+
+Mantenha a pasta do repositório no mesmo lugar após instalar os hooks: o comando registrado no Claude Code aponta para o caminho local deste checkout. Se precisar movê-la, execute `hooks-remove` antes da mudança e `hooks-install` na nova localização.
+
+### Abrir automaticamente ao entrar no Windows
+
+Depois de executar `uv sync --extra dev` e `hooks-install` uma vez, você pode iniciar o servidor em segundo plano e abrir o navegador com:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-room.ps1
+```
+
+O script usa a porta 8765, espera a API responder e abre a sala. Se a porta já estiver ocupada, ele encerra com erro em vez de abrir outra aplicação. Para usar outra porta, acrescente `-Port 8898` ao comando. Se o atalho não abrir a sala, execute o comando manualmente em um terminal para ver o erro; erros de um atalho oculto não aparecem na tela.
+
+Para executar esse script em cada **login** do Windows:
+
+1. Pressione `Win+R`, digite `shell:startup` e pressione Enter.
+2. Na pasta aberta, crie um atalho. Como destino, use `powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\caminho\para\AiOperationsRoom\scripts\start-room.ps1"`, trocando o caminho pelo local real do repositório.
+3. Faça logout e login para testar. Para desativar a abertura automática, remova esse atalho da pasta Inicializar.
+
+O script inicia apenas o servidor real. A demonstração abaixo usa dados separados e deve ser aberta com `demo --serve`. [A Microsoft documenta a pasta `shell:startup` para aplicativos iniciados no login](https://support.microsoft.com/en-gb/windows/experience/startup-boot/configure-startup-applications-in-windows).
 
 ## Demonstração
 
-O modo demo cria uma fila e um banco separados em `~/.ai-operations-room-demo`, sem acessar dados reais ou precisar do Claude Code.
+O modo demo cria uma fila e um banco separados em `~/.ai-operations-room-demo`, sem acessar dados reais ou precisar do Claude Code. Projetos cadastrados na demo não aparecem no servidor real, e vice-versa.
 
 ```powershell
 uv run python -m backend.cli demo --serve
