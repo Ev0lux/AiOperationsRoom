@@ -69,7 +69,7 @@ O Painel usa um período selecionável de 6, 12 ou 24 horas. O Escritório mostr
 
 ## Sugestões de agentes
 
-Quer adicionar subagentes aos seus próprios projetos? Veja [SUGESTAO_DE_AGENTES.md](SUGESTAO_DE_AGENTES.md) para dois exemplos adaptáveis: um revisor de código e um pesquisador de contexto.
+Estou compartilhando também 2 agentes que eu utilizo nos meus projetos de trabalho e pessoais[SUGESTAO_DE_AGENTES.md](SUGESTAO_DE_AGENTES.md): um revisor de código e um pesquisador de contexto.
 
 ## Desenvolvimento
 
