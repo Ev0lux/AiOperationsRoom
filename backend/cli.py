@@ -131,11 +131,12 @@ def seed_demo(path: Path) -> None:
     print(f"Dados fictícios criados em {path}")
 
 
-def serve(data_dir: str | None, port: int = 8765) -> None:
+def serve(data_dir: str | None, port: int = 8765, host: str | None = None) -> None:
     if data_dir:
         os.environ["AI_OPERATIONS_ROOM_DATA_DIR"] = data_dir
     import uvicorn
-    uvicorn.run("backend.api:app", host="127.0.0.1", port=port)
+    bind = host or os.environ.get("AI_OPERATIONS_ROOM_HOST", "127.0.0.1")
+    uvicorn.run("backend.api:app", host=bind, port=port)
 
 
 def main() -> int:
@@ -151,6 +152,7 @@ def main() -> int:
     server = commands.add_parser("serve")
     server.add_argument("--data-dir")
     server.add_argument("--port", type=int, default=8765)
+    server.add_argument("--host", help="Endereço de escuta (padrão: 127.0.0.1 ou AI_OPERATIONS_ROOM_HOST)")
     args = parser.parse_args()
     if args.action == "hooks-install":
         install_hooks(args.settings)
@@ -163,7 +165,7 @@ def main() -> int:
         else:
             print("Use `python -m backend.cli demo --serve` para abrir a demonstração.")
     else:
-        serve(args.data_dir, args.port)
+        serve(args.data_dir, args.port, getattr(args, "host", None))
     return 0
 
 

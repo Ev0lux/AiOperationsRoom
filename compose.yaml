@@ -1,0 +1,41 @@
+# AI Operations Room — servidor e demonstração em container.
+#
+# Demonstração (dados fictícios):
+#   docker compose up room-demo
+#
+# Dados reais (monte a mesma pasta que os hooks do host usam):
+#   docker compose up room
+#
+# No Linux, ajuste ROOM_DATA_DIR no .env se ~/.ai-operations-room estiver em outro caminho.
+
+services:
+  room:
+    build: .
+    ports:
+      - "${ROOM_PORT:-8765}:8765"
+    environment:
+      AI_OPERATIONS_ROOM_HOST: 0.0.0.0
+      AI_OPERATIONS_ROOM_DATA_DIR: /data
+    volumes:
+      - ${ROOM_DATA_DIR:-${HOME}/.ai-operations-room}:/data
+    restart: unless-stopped
+
+  room-demo:
+    build: .
+    ports:
+      - "${ROOM_PORT:-8765}:8765"
+    environment:
+      AI_OPERATIONS_ROOM_HOST: 0.0.0.0
+      AI_OPERATIONS_ROOM_DATA_DIR: /data
+    command:
+      - uv
+      - run
+      - python
+      - -m
+      - backend.cli
+      - demo
+      - --serve
+      - --data-dir
+      - /data
+    profiles:
+      - demo

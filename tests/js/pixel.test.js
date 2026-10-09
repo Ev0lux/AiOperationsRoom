@@ -14,7 +14,7 @@ const px = require(path.join(__dirname, '..', '..', 'frontend', 'pixel.js'));
 
 const LARGURA = 968; // largura útil da sala na cena (1000 - 2 margens)
 const ALFABETO = new Set(['.', ...Object.keys(px.COR_FIXA), ...Object.keys(px.CLASSE_VAR)]);
-const PLACA = 99 / px.P; // largura máxima da placa (PLACA_MAX em pixel.js), em pixels de arte
+const PLACA = 99 / px.P; // folga mínima entre vagas no layout; nomes podem usar até PLACA_MAX no DOM
 
 /* ------------------------------------------------------------ sprites */
 

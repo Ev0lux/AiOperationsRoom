@@ -27,6 +27,21 @@ function visualId(value) {
   return hash >>> 0;
 }
 
+function tipoAgente(run) {
+  return !run.agent_id && !run.pai_chave ? 'principal' : (run.tipo || 'subagente');
+}
+
+function nomeAgente(run) {
+  const nomes = window.NomesAgentes;
+  if (!nomes) return tipoAgente(run);
+  return nomes.nomeDe({
+    session_id: run.session_id,
+    agent_id: run.agent_id,
+    id: visualId(run.chave),
+    tipo_agente: tipoAgente(run),
+  });
+}
+
 function officeData() {
   const rooms = new Map();
   visualRuns.clear();
@@ -39,7 +54,7 @@ function officeData() {
       id,
       session_id: run.session_id,
       agent_id: run.agent_id,
-      tipo_agente: run.agent_id ? run.tipo : 'principal',
+      tipo_agente: !run.agent_id && !run.pai_chave ? 'principal' : (run.tipo || 'subagente'),
       status: run.estado,
       execucao_pai_id: run.pai_chave ? visualId(run.pai_chave) : null,
       duracao_segundos: Math.max(0, Math.floor((Date.now() - Date.parse(run.criado_em)) / 1000)),
@@ -64,7 +79,7 @@ function renderRoom() {
   const room = $('#office-room');
   if (viewMode === 'panel') {
     if (window.EscritorioPixel?.montado()) window.EscritorioPixel.destruir();
-    room.innerHTML = `<div class="panel-table" role="region" aria-label="Painel de execuções"><table><thead><tr><th>Agente</th><th>Projeto</th><th>Estado</th><th>Atualização</th></tr></thead><tbody>${(dashboard.historico || []).map((run) => `<tr data-session="${esc(run.session_id)}" tabindex="0"><td>${esc(run.tipo)}</td><td>${esc(run.projeto_nome || run.cwd || 'Sem projeto')}</td><td>${esc(states[run.estado] || run.estado)}</td><td>${esc(new Date(run.atualizado_em).toLocaleString('pt-BR'))}</td></tr>`).join('') || '<tr><td colspan="4">Nenhuma execução no período.</td></tr>'}</tbody></table></div>`;
+    room.innerHTML = `<div class="panel-table" role="region" aria-label="Painel de execuções"><table><thead><tr><th>Agente</th><th>Projeto</th><th>Estado</th><th>Atualização</th></tr></thead><tbody>${(dashboard.historico || []).map((run) => `<tr data-session="${esc(run.session_id)}" tabindex="0"><td>${esc(nomeAgente(run))}</td><td>${esc(run.projeto_nome || run.cwd || 'Sem projeto')}</td><td>${esc(states[run.estado] || run.estado)}</td><td>${esc(new Date(run.atualizado_em).toLocaleString('pt-BR'))}</td></tr>`).join('') || '<tr><td colspan="4">Nenhuma execução no período.</td></tr>'}</tbody></table></div>`;
     return;
   }
   const data = officeData();
@@ -82,7 +97,7 @@ async function selectSession(sessionId) {
   renderRoom();
   const [agents, history] = await Promise.all([request('GET', `/sessoes/${encodeURIComponent(sessionId)}/agentes`), request('GET', `/sessoes/${encodeURIComponent(sessionId)}/historico`)]);
   const main = agents.agentes.find((agent) => !agent.pai_chave);
-  $('#details').innerHTML = `<h2>${esc(main?.tipo || 'Sessão')}</h2><p class="status">${esc(states[main?.estado] || '')}</p><p class="detail-path">${esc(main?.cwd || '')}</p><h3>Agentes</h3><ul class="agent-list">${agents.agentes.map((agent) => `<li><span>${esc(agent.tipo)}</span><small>${esc(states[agent.estado])}</small></li>`).join('') || '<li>Nenhum agente registrado.</li>'}</ul><h3>Histórico</h3><ol class="history">${history.eventos.map((event) => `<li><span>${esc(event.nome)}</span><time>${esc(new Date(event.ocorrido_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))}</time></li>`).join('') || '<li>Sem eventos.</li>'}</ol>`;
+  $('#details').innerHTML = `<h2>${esc(main ? nomeAgente(main) : 'Sessão')}</h2><p class="status">${esc(states[main?.estado] || '')}</p><p class="detail-path">${esc(main?.cwd || '')}</p><h3>Agentes</h3><ul class="agent-list">${agents.agentes.map((agent) => `<li><span>${esc(nomeAgente(agent))}</span><small>${esc(states[agent.estado])}</small></li>`).join('') || '<li>Nenhum agente registrado.</li>'}</ul><h3>Histórico</h3><ol class="history">${history.eventos.map((event) => `<li><span>${esc(event.nome)}</span><time>${esc(new Date(event.ocorrido_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))}</time></li>`).join('') || '<li>Sem eventos.</li>'}</ol>`;
   $('#details-modal').innerHTML = $('#details').innerHTML;
   $('#details-dialog').showModal();
 }

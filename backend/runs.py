@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import sqlite3
 
+from backend.hook_events import canonical_event_name
+
 
 ACTIVE = {"trabalhando", "delegando", "aguardando"}
 
@@ -59,7 +61,7 @@ def _active_children(con: sqlite3.Connection, session_id: str) -> int:
 
 
 def apply(con: sqlite3.Connection, event: dict) -> None:
-    name = event["evento"]
+    name = canonical_event_name(event["evento"])
     if name == "SessionStart":
         _set_main(con, event, "aguardando")
     elif name == "UserPromptSubmit":
