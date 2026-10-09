@@ -12,6 +12,19 @@ from pathlib import Path
 FIELDS = ("hook_event_name", "session_id", "cwd", "agent_id", "agent_type", "reason")
 BACKGROUND_FIELDS = ("id", "type", "status", "agent_type")
 
+_EVENT_ALIASES = {
+    "sessionStart": "SessionStart",
+    "userPromptSubmit": "UserPromptSubmit",
+    "subagentStart": "SubagentStart",
+    "subagentStop": "SubagentStop",
+    "sessionEnd": "SessionEnd",
+    "stop": "Stop",
+}
+
+
+def canonical_event_name(name: str) -> str:
+    return _EVENT_ALIASES.get(name, name)
+
 
 def data_dir() -> Path:
     return Path(os.environ.get("AI_OPERATIONS_ROOM_DATA_DIR")
@@ -20,7 +33,7 @@ def data_dir() -> Path:
 
 def normalize(payload: dict) -> dict:
     event = {key: payload[key] for key in FIELDS if key in payload}
-    event["evento"] = event.pop("hook_event_name", "desconhecido")
+    event["evento"] = canonical_event_name(event.pop("hook_event_name", "desconhecido"))
     event["id"] = str(uuid.uuid4())
     event["t"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     tasks = payload.get("background_tasks")

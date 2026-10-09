@@ -1,0 +1,12 @@
+.venv
+.git
+.gitignore
+.pytest_cache
+.test-temp
+**/__pycache__
+**/*.pyc
+**/.DS_Store
+*.md
+!README.md
+agent-transcripts
+.cursor

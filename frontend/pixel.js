@@ -10,7 +10,8 @@
    - Lugar é AMBIENTAÇÃO, não estado. Toda pessoa visível circula entre as
      áreas; trabalhar na mesa é uma atividade possível, não a posição de quem
      está "trabalhando". O estado verdadeiro está sempre no personagem — o
-     marcador sobre a cabeça e a borda da placa têm a cor do estado — e no
+     marcador (losango) reflete carga e tipo de atividade; a borda da placa
+     segue o estado do fluxo — e no
      detalhe ao clicar. Para a cena não contradizer o estado: só quem está
      trabalhando ou delegando digita e acende o monitor; a escolha da
      próxima área pesa o estado (quem trabalha vai mais à mesa).
@@ -734,8 +735,10 @@
     return p.saida();
   }
 
+  const PLACA_MAX_LOGICA = 210;
+
   const logica = {
-    P, SW, SH, POSES, ESTILOS, CABECAS, COR_FIXA, CLASSE_VAR, PESOS, X,
+    P, SW, SH, POSES, ESTILOS, CABECAS, COR_FIXA, CLASSE_VAR, PESOS, X, PLACA_MAX: PLACA_MAX_LOGICA,
     mapaPessoa, aparencia, compilar, planejarSala, criarGrade, rota, sortearZona, escolherVaga,
     prepararSalas, pintarSala, hash,
     definirFocoMesa: (ligado) => { focoMesa = Boolean(ligado); },
@@ -747,9 +750,21 @@
   const CENA = { largura: 1000, margem: 16 };
   const VELOCIDADE = 26; // pixels de arte por segundo
   const PERMANENCIA = { mesa: [24000, 55000], cafe: [9000, 20000], estar: [14000, 36000] };
-  const PLACA_MAX = 99; // unidades: duas placas vizinhas nunca se encostam
-  const ROTULOS = { principal: 'Claude principal', desconhecido: 'agente desconhecido' };
-  const rotulo = (tipo) => ROTULOS[tipo] || tipo || '?';
+  const PLACA_MAX = PLACA_MAX_LOGICA;
+  const nomeExibicao = (e) => (raiz.NomesAgentes && raiz.NomesAgentes.nomeDe(e)) || e.tipo_agente || '?';
+
+  function execucoesDaSala(chaveSala) {
+    return salas.get(chaveSala)?.dados?.execucoes || [];
+  }
+
+  function aplicarMarcador(el, e, execucoesNaSala) {
+    const api = raiz.MarcadoresAgente;
+    if (!api) return;
+    const { cor, categoria, anel } = api.corMarcador(e, api.contextoSala(execucoesNaSala));
+    el.style.setProperty('--marca', cor);
+    el.style.setProperty('--marca-anel', anel || '#1a1520');
+    el.dataset.marca = categoria;
+  }
   const esc = (v) =>
     String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const reduzido = () => raiz.matchMedia && raiz.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1056,7 +1071,7 @@
     el.appendChild(virar);
 
     // marcador do estado sobre a cabeça: losango; vazio quando encerrada
-    const marca = svgEl('g', { transform: 'translate(0,-78)' }, 'pp-marca');
+    const marca = svgEl('g', { transform: 'translate(0,-80) scale(1.15)' }, 'pp-marca');
     marca.appendChild(svgEl('path', { d: 'M0 -12 L12 0 L0 12 L-12 0 Z' }, 'pp-marca-borda'));
     marca.appendChild(svgEl('path', { d: 'M0 -7.5 L7.5 0 L0 7.5 L-7.5 0 Z' }, 'pp-marca-miolo'));
     el.appendChild(marca);
@@ -1074,17 +1089,20 @@
     cracha.innerHTML = `<rect class="cracha-fundo" x="-6.5" y="-5.5" width="13" height="11" rx="2"/>${glifoDe(e.tipo_agente)}`;
     placa.appendChild(cracha);
     const nome = svgEl('text', { x: -24, y: 10.5 }, 'nome');
-    nome.textContent = rotulo(e.tipo_agente);
+    const apelido = nomeExibicao(e);
+    nome.textContent = apelido;
     placa.appendChild(nome);
     el.appendChild(placa);
     el.appendChild(svgEl('text', { x: 0, y: 28, 'text-anchor': 'middle' }, 'tempo')).textContent = tempoDe(e);
+    el.setAttribute('title', apelido);
+    aplicarMarcador(el, e, execucoesDaSala(chaveSala));
 
     const ent = {
       id: e.id, sala: chaveSala, el, virar, q0, q1, ap,
-      status: e.status, tipo: e.tipo_agente, pai: e.execucao_pai_id || null,
+      status: e.status, tipo: e.tipo_agente, apelido, pai: e.execucao_pai_id || null,
       x: 0, y: 0, vaga: null, rota: null, pose: null, dir: 'baixo', proxima: 0, sumindo: false,
     };
-    el.setAttribute('aria-label', `${rotulo(e.tipo_agente)}: ${e.status}`);
+    el.setAttribute('aria-label', `${apelido}: ${e.status}`);
     sala.gente.appendChild(el);
     ajustarPlaca(ent);
 
@@ -1106,18 +1124,19 @@
     setTimeout(() => el.classList.remove('surgindo'), 40);
   }
 
-  /* Nome que não cabe é cortado com "…"; o tooltip e o detalhe têm o nome
-     inteiro. Assim duas placas vizinhas nunca se sobrepõem. */
+  /* Ajusta a placa ao nome inteiro; só corta em último caso (vizinhos muito perto). */
   function ajustarPlaca(ent) {
     const texto = ent.el.querySelector('.pp-placa .nome');
     if (!texto || !texto.getComputedTextLength) return;
-    const inteiro = texto.textContent;
+    const inteiro = ent.apelido || texto.textContent;
+    texto.textContent = inteiro;
+    const padding = 30;
     let corte = inteiro.length;
-    while (corte > 4 && texto.getComputedTextLength() + 24 > PLACA_MAX) {
+    while (corte > 6 && texto.getComputedTextLength() + padding > PLACA_MAX) {
       corte -= 1;
       texto.textContent = `${inteiro.slice(0, corte)}…`;
     }
-    const largura = Math.ceil((texto.getComputedTextLength() + 24) / P) * P;
+    const largura = Math.ceil((texto.getComputedTextLength() + padding) / P) * P;
     const x0 = -Math.round(largura / 2 / P) * P;
     ent.el.querySelector('.pp-placa-fundo').setAttribute('x', x0);
     ent.el.querySelector('.pp-placa-fundo').setAttribute('width', largura);
@@ -1132,8 +1151,15 @@
     const classes = ['personagem', 'avatar', 'pessoa', e.status, `familia-${familiaDe(e.tipo_agente)}`];
     if (ent.rota) classes.push('andando');
     ent.el.setAttribute('class', classes.join(' '));
-    ent.el.setAttribute('aria-label', `${rotulo(e.tipo_agente)}: ${e.status}`);
+    const apelido = nomeExibicao(e);
+    ent.apelido = apelido;
+    ent.el.setAttribute('title', apelido);
+    ent.el.setAttribute('aria-label', `${apelido}: ${e.status}`);
+    const nomeEl = ent.el.querySelector('.pp-placa .nome');
+    if (nomeEl) nomeEl.textContent = apelido;
     ent.el.querySelector('.tempo').textContent = tempoDe(e);
+    ajustarPlaca(ent);
+    aplicarMarcador(ent.el, e, execucoesDaSala(ent.sala));
     if (antes === e.status) return;
     // mudou de estado: decide logo para onde vai. Quem encerrou ou ficou
     // órfão sai da mesa para a convivência; os outros só reconsideram.
